@@ -19,7 +19,7 @@ import logging
 try:
     import importlib.metadata as importlib_metadata
 except ModuleNotFoundError:
-    import importlib_metadata
+    import importlib_metadata  # type: ignore[no-redef]
 
 """
 The group name for entry points identifying extension points.

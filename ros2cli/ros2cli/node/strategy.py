@@ -11,6 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from argparse import ArgumentParser
+from argparse import Namespace
+from types import TracebackType
+from typing import Any
+from typing import Optional
+from typing import Type
 
 from ros2cli.node.daemon import add_arguments as add_daemon_node_arguments
 from ros2cli.node.daemon import DaemonNode
@@ -22,10 +28,10 @@ from ros2cli.node.direct import DirectNode
 
 class NodeStrategy:
 
-    def __init__(self, args, *, node_name=None):
+    def __init__(self, args: Namespace, *, node_name: Optional[str] = None):
         use_daemon = not getattr(args, 'no_daemon', False)
         if use_daemon and is_daemon_running(args):
-            self._daemon_node = DaemonNode(args)
+            self._daemon_node: Optional[DaemonNode] = DaemonNode(args)
             self._direct_node = None
             if not self._daemon_node.connected:
                 self._direct_node = DirectNode(args, node_name=node_name)
@@ -40,18 +46,18 @@ class NodeStrategy:
         self._in_scope = False
 
     @property
-    def daemon_node(self):
+    def daemon_node(self) -> Optional[DaemonNode]:
         return self._daemon_node
 
     @property
-    def direct_node(self):
+    def direct_node(self) -> DirectNode:
         if self._direct_node is None:
             self._direct_node = DirectNode(self._args, node_name=self._node_name)
             if self._in_scope:
                 self._direct_node.__enter__()
         return self._direct_node
 
-    def __enter__(self):
+    def __enter__(self) -> 'NodeStrategy':
         if self._daemon_node:
             self._daemon_node.__enter__()
         if self._direct_node:
@@ -59,12 +65,14 @@ class NodeStrategy:
         self._in_scope = True
         return self
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         if self.daemon_node and name in self.daemon_node.methods:
             return getattr(self.daemon_node, name)
         return getattr(self.direct_node, name)
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self, exc_type: Optional[Type[BaseException]],
+                 exc_value: Optional[BaseException],
+                 traceback: Optional[TracebackType]) -> None:
         self._in_scope = False
         if self._direct_node:
             self._direct_node.__exit__(exc_type, exc_value, traceback)
@@ -72,7 +80,7 @@ class NodeStrategy:
             self._daemon_node.__exit__(exc_type, exc_value, traceback)
 
 
-def add_arguments(parser):
+def add_arguments(parser: ArgumentParser) -> None:
     add_daemon_node_arguments(parser)
     add_direct_node_arguments(parser)
     parser.add_argument(

@@ -11,18 +11,28 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Any
+from typing import Callable
+from typing import Optional
+from typing import Type
 
 
-def fullname(klass):
+from xmlrpc.client import Marshaller
+from xmlrpc.client import Unmarshaller
+
+
+def fullname(klass: Type[Any]) -> str:
     return f'{klass.__module__}.{klass.__name__}'
 
 
-def end_any_with_slots(unmarshaller, data, type_):
+def end_any_with_slots(unmarshaller: Unmarshaller, data: Any, type_: Type[Any]) -> None:
     unmarshaller._stack[-1] = type_(**unmarshaller._stack[-1])
-    unmarshaller._value = 0
+    unmarshaller._value = False
 
 
-def dump_any_with_slots(marshaller, value, write, transform=None):
+def dump_any_with_slots(marshaller: Marshaller, value: Any,
+                        write: Callable[[str], object],
+                        transform: Optional[Callable[[str], str]] = None) -> None:
     write(f'<value><{fullname(type(value))}>')
     slots = value.__slots__
     if transform is not None:
@@ -31,12 +41,12 @@ def dump_any_with_slots(marshaller, value, write, transform=None):
     write(f'</{fullname(type(value))}></value>')
 
 
-def end_any_enum(unmarshaller, data, enum_):
+def end_any_enum(unmarshaller: Unmarshaller, data: Any, enum_: Type[Any]) -> None:
     unmarshaller.append(enum_(int(data)))
-    unmarshaller._value = 0
+    unmarshaller._value = False
 
 
-def dump_any_enum(marshaller, value, write):
+def dump_any_enum(marshaller: Marshaller, value: Any, write: Callable[[str], object]) -> None:
     write(f'<value><{fullname(type(value))}>')
     write(str(value.value))
     write(f'</{fullname(type(value))}></value>')

@@ -18,13 +18,14 @@ import inspect
 import os
 import sys
 import time
+from typing import Callable
 
 
-def get_ros_domain_id():
+def get_ros_domain_id() -> int:
     return int(os.environ.get('ROS_DOMAIN_ID', 0))
 
 
-def wait_for(predicate, timeout, period=0.1):
+def wait_for(predicate: Callable[[], bool], timeout: float, period: float = 0.1) -> bool:
     """
     Wait for a predicate to evaluate to `True`.
 
@@ -100,7 +101,7 @@ def before_invocation(func, hook):
     return wrapper
 
 
-def unsigned_int(string):
+def unsigned_int(string: str) -> int:
     try:
         value = int(string)
     except ValueError:

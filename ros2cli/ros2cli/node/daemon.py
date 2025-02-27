@@ -12,11 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from argparse import ArgumentParser
+from argparse import Namespace
 import errno
 import functools
 import os
 import platform
 import socket
+
+from types import TracebackType
+from typing import Any
+from typing import cast
+from typing import List
+from typing import Optional
+from typing import Type
 
 import rclpy
 
@@ -31,19 +40,19 @@ from ros2cli.xmlrpc.client import ServerProxy
 
 class DaemonNode:
 
-    def __init__(self, args):
+    def __init__(self, args: Namespace):
         self._args = args
         self._proxy = ServerProxy(
             daemon.get_xmlrpc_server_url(),
             allow_none=True)
-        self._methods = []
+        self._methods: List[str] = []
 
     @property
-    def connected(self):
+    def connected(self) -> bool:
         try:
             self._methods = [
                 method
-                for method in self._proxy.system.listMethods()
+                for method in cast(List[str], self._proxy.system.listMethods())
                 if not method.startswith('system.')
             ]
         except (ConnectionRefusedError, ConnectionResetError):
@@ -51,21 +60,23 @@ class DaemonNode:
         return True
 
     @property
-    def methods(self):
+    def methods(self) -> List[str]:
         return self._methods
 
-    def __enter__(self):
+    def __enter__(self) -> 'DaemonNode':
         self._proxy.__enter__()
         return self
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         return getattr(self._proxy, name)
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self, exc_type: Optional[Type[BaseException]],
+                 exc_value: Optional[BaseException],
+                 traceback: Optional[TracebackType]) -> None:
         self._proxy.__exit__(exc_type, exc_value, traceback)
 
 
-def is_daemon_running(args):
+def is_daemon_running(args: Namespace) -> bool:
     """
     Check if the daemon node is running.
 
@@ -75,7 +86,7 @@ def is_daemon_running(args):
         return node.connected
 
 
-def shutdown_daemon(args, timeout=None):
+def shutdown_daemon(args: Namespace, timeout: Optional[float] = None) -> bool:
     """
     Shut down daemon node if it's running.
 
@@ -101,7 +112,8 @@ def shutdown_daemon(args, timeout=None):
         return True
 
 
-def spawn_daemon(args, timeout=None, debug=False):
+def spawn_daemon(args: Namespace, timeout: Optional[float] = None,
+                 debug: bool = False) -> bool:
     """
     Spawn daemon node if it's not running.
 
@@ -176,5 +188,5 @@ def spawn_daemon(args, timeout=None, debug=False):
     return True
 
 
-def add_arguments(parser):
+def add_arguments(parser: ArgumentParser) -> None:
     pass

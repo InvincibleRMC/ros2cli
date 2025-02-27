@@ -1,4 +1,4 @@
-# Copyright 2017 Open Source Robotics Foundation, Inc.
+# Copyright 2025 Open Source Robotics Foundation, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,17 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from argparse import Namespace
 
-from ros2cli.node.daemon import is_daemon_running
-from ros2cli.verb.daemon import VerbExtension
+from ament_mypy.main import main
+import pytest
 
 
-class StatusVerb(VerbExtension):
-    """Output the status of the daemon."""
-
-    def main(self, *, args: Namespace) -> None:
-        if is_daemon_running(args):
-            print('The daemon is running')
-        else:
-            print('The daemon is not running')
+@pytest.mark.mypy
+@pytest.mark.linter
+def test_mypy():
+    assert main(argv=[]) == 0, 'Found errors'

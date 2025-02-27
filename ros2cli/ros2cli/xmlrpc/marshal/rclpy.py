@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import functools
+from typing import Any
+from typing import Callable
 from xmlrpc.client import Marshaller
 from xmlrpc.client import Unmarshaller
 
@@ -28,14 +30,14 @@ from .generic import end_any_with_slots
 from .generic import fullname
 
 
-def end_duration(unmarshaller, data):
+def end_duration(unmarshaller: Unmarshaller, data: str) -> None:
     unmarshaller.append(
         rclpy.duration.Duration(nanoseconds=int(data))
     )
-    unmarshaller._value = 0
+    unmarshaller._value = False
 
 
-def dump_duration(marshaller, value, write):
+def dump_duration(marshaller: Marshaller, value: Any, write: Callable[[str], object]) -> None:
     write(f'<value><{fullname(type(value))}>')
     write(str(value.nanoseconds))
     write(f'</{fullname(type(value))}></value>')
@@ -78,11 +80,11 @@ Unmarshaller.dispatch[fullname(rclpy.topic_endpoint_info.TopicEndpointTypeEnum)]
 Marshaller.dispatch[rclpy.topic_endpoint_info.TopicEndpointTypeEnum] = dump_any_enum
 
 
-def end_type_hash(unmarshaller, data):
+def end_type_hash(unmarshaller: Unmarshaller, data: Any):
     values = unmarshaller._stack[-1]
-    unmarshaller._stack[-1] = rclpy.type_hash.TypeHash(
-        version=int(values['version']), value=values['value'].data)
-    unmarshaller._value = 0
+    unmarshaller._stack[-1] = rclpy.type_hash.TypeHash(  # type: ignore[call-overload]
+        version=int(values['version']), value=values['value'].data)  # type: ignore
+    unmarshaller._value = False
 
 
 Unmarshaller.dispatch[fullname(rclpy.type_hash.TypeHash)] = end_type_hash

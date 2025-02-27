@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from argparse import ArgumentParser
+
 from ros2cli.plugin_system import PLUGIN_SYSTEM_VERSION
 from ros2cli.plugin_system import satisfies_version
 
@@ -33,11 +35,11 @@ class VerbExtension:
     NAME = None
     EXTENSION_POINT_VERSION = '0.1'
 
-    def __init__(self):
+    def __init__(self) -> None:
         super(VerbExtension, self).__init__()
         satisfies_version(PLUGIN_SYSTEM_VERSION, '^0.1')
 
-    def add_arguments(self, parser, cli_name):
+    def add_arguments(self, parser: ArgumentParser, cli_name: str) -> None:
         pass
 
     def main(self, *, args):

@@ -15,6 +15,10 @@
 import argparse
 import os
 import time
+from typing import Optional
+from typing import Sequence
+from typing import Tuple
+from typing import Union
 import uuid
 
 import rclpy
@@ -31,13 +35,13 @@ from ros2cli.xmlrpc.local_server import LocalXMLRPCServer
 from ros2cli.xmlrpc.local_server import SimpleXMLRPCRequestHandler
 
 
-def get_port():
+def get_port() -> int:
     base_port = 11511
     base_port += int(os.environ.get('ROS_DOMAIN_ID', 0))
     return base_port
 
 
-def get_address():
+def get_address() -> Tuple[str, int]:
     return '127.0.0.1', get_port()
 
 
@@ -45,12 +49,13 @@ class RequestHandler(SimpleXMLRPCRequestHandler):
     rpc_paths = ('/ros2cli/',)
 
 
-def get_xmlrpc_server_url(address=None):
+def get_xmlrpc_server_url(address: Optional[Tuple[Union[str, bytes, bytearray, int], int]] = None
+                          ) -> str:
     if not address:
         address = get_address()
     host, port = address
     path = RequestHandler.rpc_paths[0]
-    return f'http://{host}:{port}{path}'
+    return f'http://{str(host)}:{port}{path}'
 
 
 def make_xmlrpc_server() -> LocalXMLRPCServer:
@@ -64,7 +69,7 @@ def make_xmlrpc_server() -> LocalXMLRPCServer:
     )
 
 
-def serve(server: LocalXMLRPCServer, *, timeout: int = 2 * 60 * 60):
+def serve(server: LocalXMLRPCServer, *, timeout: int = 2 * 60 * 60) -> None:
     """
     Serve the ros2cli daemon API using the given `server`.
 
@@ -127,17 +132,17 @@ def serve(server: LocalXMLRPCServer, *, timeout: int = 2 * 60 * 60):
 
         shutdown = False
 
-        def timeout_handler():
+        def timeout_handler() -> None:
             nonlocal shutdown
 
             if time.time() - last_function_call_time > timeout:
                 print('Shutdown due to timeout')
                 shutdown = True
-        server.handle_timeout = timeout_handler
+        server.handle_timeout = timeout_handler  # type: ignore[method-assign]
         server.timeout = 0.2
 
         # function to shutdown daemon remotely
-        def shutdown_handler():
+        def shutdown_handler() -> None:
             nonlocal shutdown
             print('Remote shutdown requested')
             shutdown = True
@@ -151,14 +156,14 @@ def serve(server: LocalXMLRPCServer, *, timeout: int = 2 * 60 * 60):
             pass
 
 
-def serve_and_close(server: LocalXMLRPCServer, *, timeout: int = 2 * 60 * 60):
+def serve_and_close(server: LocalXMLRPCServer, *, timeout: int = 2 * 60 * 60) -> None:
     try:
         serve(server, timeout=timeout)
     finally:
         server.server_close()
 
 
-def main(*, argv=None):
+def main(*, argv: Optional[Sequence[str]] = None) -> None:
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(

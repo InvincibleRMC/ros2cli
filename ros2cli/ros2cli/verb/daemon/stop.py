@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from argparse import Namespace
+
 from ros2cli.node.daemon import shutdown_daemon
 from ros2cli.verb.daemon import VerbExtension
 
@@ -19,7 +21,7 @@ from ros2cli.verb.daemon import VerbExtension
 class StopVerb(VerbExtension):
     """Stop the daemon if it is running."""
 
-    def main(self, *, args):
+    def main(self, *, args: Namespace) -> None:
         if shutdown_daemon(args, timeout=10.0):
             print('The daemon has been stopped')
         else:

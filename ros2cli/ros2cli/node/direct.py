@@ -12,7 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from argparse import ArgumentParser
+from argparse import Namespace
 import os
+from types import TracebackType
+from typing import Any
+from typing import List
+from typing import Optional
+from typing import Tuple
+from typing import Type
 
 import rclpy
 import rclpy.action
@@ -24,10 +32,10 @@ DEFAULT_TIMEOUT = 0.5
 
 class DirectNode:
 
-    def __init__(self, args, *, node_name=None):
+    def __init__(self, args: Namespace, *, node_name: Optional[str] = None):
         timeout_reached = False
 
-        def timer_callback():
+        def timer_callback() -> None:
             nonlocal timeout_reached
             timeout_reached = True
 
@@ -61,35 +69,41 @@ class DirectNode:
 
         self.node.destroy_timer(timer)
 
-    def __enter__(self):
+    def __enter__(self) -> 'DirectNode':
         return self
 
     # TODO(hidmic): generalize/standardize rclpy graph API
     #               to not have to make a special case for
     #               rclpy.action
-    def get_action_names_and_types(self):
+    def get_action_names_and_types(self) -> List[Tuple[str, List[str]]]:
         return rclpy.action.get_action_names_and_types(self.node)
 
-    def get_action_client_names_and_types_by_node(self, remote_node_name, remote_node_namespace):
+    def get_action_client_names_and_types_by_node(
+            self, remote_node_name: str, remote_node_namespace: str
+            ) -> List[Tuple[str, List[str]]]:
         return rclpy.action.get_action_client_names_and_types_by_node(
             self.node, remote_node_name, remote_node_namespace)
 
-    def get_action_server_names_and_types_by_node(self, remote_node_name, remote_node_namespace):
+    def get_action_server_names_and_types_by_node(
+            self, remote_node_name: str, remote_node_namespace: str
+            ) -> List[Tuple[str, List[str]]]:
         return rclpy.action.get_action_server_names_and_types_by_node(
             self.node, remote_node_name, remote_node_namespace)
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         if not rclpy.ok():
             raise RuntimeError('!rclpy.ok()')
 
         return getattr(self.node, name)
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self, exc_type: Optional[Type[BaseException]],
+                 exc_value: Optional[BaseException],
+                 traceback: Optional[TracebackType]):
         self.node.destroy_node()
         rclpy.try_shutdown()
 
 
-def add_arguments(parser):
+def add_arguments(parser: ArgumentParser):
     parser.add_argument(
         '--spin-time', type=float, default=DEFAULT_TIMEOUT,
         help='Spin time in seconds to wait for discovery (only applies when '

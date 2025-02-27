@@ -12,16 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from argparse import Namespace
 import functools
 import inspect
+from types import TracebackType
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Type
 
 import psutil
+from psutil._common import snicaddr
 import rclpy
 
 from ros2cli.node.direct import DirectNode
 
 
-def get_interfaces_ip_addresses():
+def get_interfaces_ip_addresses() -> Dict[str, List[snicaddr]]:
     addresses_by_interfaces = psutil.net_if_addrs()
     print(f'Addresses by interfaces: {addresses_by_interfaces}')
     return addresses_by_interfaces
@@ -30,18 +38,18 @@ def get_interfaces_ip_addresses():
 class NetworkAwareNode:
     """A direct node, that resets itself when a network interface changes."""
 
-    def __init__(self, args):
+    def __init__(self, args: Namespace):
         self.args = args
         # TODO(ivanpauno): A race condition is possible here, since it isn't possible to know
         # exactly which interfaces were available at node creation.
         self.node = DirectNode(args)
         self.addresses_at_start = get_interfaces_ip_addresses()
 
-    def __enter__(self):
+    def __enter__(self) -> 'NetworkAwareNode':
         self.node.__enter__()
         return self
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         attr = getattr(self.node, name)
 
         if inspect.ismethod(attr):
@@ -50,15 +58,16 @@ class NetworkAwareNode:
                 self.reset_if_addresses_changed()
                 # The attribute has to be get here again, in case self.node changed
                 return getattr(self.node, name)(*args, **kwargs)
-            wrapper.__signature__ = inspect.signature(attr)
+            wrapper.__signature__ = inspect.signature(attr)  # type: ignore[attr-defined]
             return wrapper
         self.reset_if_addresses_changed()
         return attr
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self, exc_type: Optional[Type[BaseException]],
+                 exc_value: Optional[BaseException], traceback: Optional[TracebackType]) -> None:
         self.node.__exit__(exc_type, exc_value, traceback)
 
-    def reset_if_addresses_changed(self):
+    def reset_if_addresses_changed(self) -> None:
         new_addresses = get_interfaces_ip_addresses()
         if new_addresses != self.addresses_at_start:
             self.addresses_at_start = new_addresses

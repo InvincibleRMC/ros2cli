@@ -31,7 +31,7 @@ class PluginException(Exception):
     pass
 
 
-_extension_instances = {}
+_extension_instances: dict = {}
 
 
 def instantiate_extensions(
@@ -83,7 +83,7 @@ def order_extensions_by_name(extensions):
     return order_extensions(extensions, lambda pair: pair[0])
 
 
-def satisfies_version(version, caret_range):
+def satisfies_version(version: str, caret_range: str) -> None:
     assert caret_range.startswith('^'), 'Only supports caret ranges'
     extension_point_version = Version(version)
     extension_version = Version(caret_range[1:])
