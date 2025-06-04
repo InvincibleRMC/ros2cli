@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from argparse import ArgumentParser
+from argparse import Namespace
+
 from ros2cli.command import add_subparsers_on_demand
 from ros2cli.command import CommandExtension
 from ros2doctor.api import generate_reports
@@ -22,7 +25,7 @@ from ros2doctor.api.format import format_print
 class DoctorCommand(CommandExtension):
     """Check ROS setup and other potential issues."""
 
-    def add_arguments(self, parser, cli_name):
+    def add_arguments(self, parser: ArgumentParser, cli_name: str) -> None:
         group = parser.add_mutually_exclusive_group(required=False)
         group.add_argument(
             '--report', '-r', action='store_true',
@@ -44,7 +47,7 @@ class DoctorCommand(CommandExtension):
         add_subparsers_on_demand(
             parser, cli_name, '_verb', 'ros2doctor.verb', required=False)
 
-    def main(self, *, parser, args):
+    def main(self, *, parser: ArgumentParser, args: Namespace) -> None:
         """Run checks and print report to terminal based on user input args."""
         if hasattr(args, '_verb'):
             extension = getattr(args, '_verb')

@@ -23,7 +23,7 @@ from std_msgs.msg import String
 
 class ListenerNode(Node):
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__('listener')
         qos_profile = QoSProfile(
             depth=1,
@@ -33,11 +33,11 @@ class ListenerNode(Node):
             String, 'chatter', self.callback, qos_profile
         )
 
-    def callback(self, msg):
+    def callback(self, msg: String) -> None:
         self.get_logger().info('I heard: [%s]' % msg.data)
 
 
-def main(args=None):
+def main(args: None = None) -> None:
     try:
         with rclpy.init(args=args):
             node = ListenerNode()

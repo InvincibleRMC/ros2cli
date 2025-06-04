@@ -30,7 +30,7 @@ from ros2doctor.verb.hello import SummaryTable
 
 @pytest.mark.rostest
 @launch_testing.markers.keep_alive
-def generate_test_description():
+def generate_test_description() -> LaunchDescription:
     return LaunchDescription([
         ExecuteProcess(
             cmd=['ros2', 'daemon', 'stop'],
@@ -42,7 +42,7 @@ def generate_test_description():
     ])
 
 
-def _generate_expected_summary_table():
+def _generate_expected_summary_table() -> SummaryTable:
     """Generate expected summary table for one emit period on a single host."""
     expected_summary = SummaryTable()
     # 1 pub/send per default emit period
@@ -53,7 +53,7 @@ def _generate_expected_summary_table():
 
 class TestROS2DoctorCLI(unittest.TestCase):
 
-    def test_hello_single_host(self):
+    def test_hello_single_host(self) -> None:
         """Run HelloVerb for one emit period on a single host."""
         args = Namespace()
         args.topic = '/canyouhearme'

@@ -12,12 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from types import TracebackType
 from typing import List
+from typing import Optional
 from typing import Tuple
+from typing import Type
+from typing import Union
 import warnings
 
+from . import Report
 
-def format_print(report):
+
+def format_print(report: Report) -> None:
     """
     Format print report content.
 
@@ -30,7 +36,7 @@ def format_print(report):
         print('{:{padding}}: {}'.format(item_name, item_content, padding=padding_num))
 
 
-def compute_padding(report_items: List[Tuple[str, str]]) -> int:
+def compute_padding(report_items: List[Tuple[str, object]]) -> int:
     """
     Compute padding based on report content.
 
@@ -45,18 +51,23 @@ def compute_padding(report_items: List[Tuple[str, str]]) -> int:
     return padding
 
 
-def custom_warning_format(msg, cat, filename, linenum, file=None, line=None):
-    return '%s: %s: %s: %s\n' % (filename, linenum, cat.__name__, msg)
+def custom_warning_format(message: Union[Warning, str], category: Type[Warning],
+                          filename: str, lineno: int, line: Optional[str] = None) -> str:
+    return '%s: %s: %s: %s\n' % (filename, lineno, category.__name__, message)
 
 
 class CustomWarningFormat:
     """Support custom warning format without modifying default format."""
 
-    def __enter__(self):
+    def __enter__(self) -> None:
         self._default_format = warnings.formatwarning
         warnings.formatwarning = custom_warning_format
 
-    def __exit__(self, t, v, trb):
+    def __exit__(
+            self,
+            t: Optional[Type[BaseException]],
+            v: Optional[BaseException],
+            trb: Optional[TracebackType]) -> None:
         """
         Define exit action for context manager.
 

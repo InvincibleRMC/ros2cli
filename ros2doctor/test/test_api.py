@@ -29,7 +29,7 @@ from ros2doctor.api.topic import TopicReport
 
 @pytest.mark.rostest
 @launch_testing.markers.keep_alive
-def generate_test_description():
+def generate_test_description() -> LaunchDescription:
     return LaunchDescription([
         ExecuteProcess(
             cmd=['ros2', 'daemon', 'stop'],
@@ -47,7 +47,7 @@ def generate_test_description():
     ])
 
 
-def _generate_expected_report(topic, pub_count, sub_count):
+def _generate_expected_report(topic: str, pub_count: int, sub_count: int) -> Report:
     expected_report = Report('TOPIC LIST')
     expected_report.add_to_report('topic', topic)
     expected_report.add_to_report('publisher count', pub_count)
@@ -57,14 +57,14 @@ def _generate_expected_report(topic, pub_count, sub_count):
 
 class TestROS2DoctorAPI(unittest.TestCase):
 
-    def test_topic_check(self):
+    def test_topic_check(self) -> None:
         """Assume no topics are publishing or subscribing other than whitelisted ones."""
         topic_check = TopicCheck()
         check_result = topic_check.check()
         self.assertEqual(check_result.error, 0)
         self.assertEqual(check_result.warning, 0)
 
-    def test_topic_report(self):
+    def test_topic_report(self) -> None:
         """Assume no topics are publishing or subscribing other than whitelisted ones."""
         report = TopicReport().report()
         expected_report = _generate_expected_report('none', 0, 0)

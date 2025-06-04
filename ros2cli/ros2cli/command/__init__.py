@@ -46,7 +46,7 @@ class CommandExtension:
         super(CommandExtension, self).__init__()
         satisfies_version(PLUGIN_SYSTEM_VERSION, '^0.1')
 
-    def add_arguments(self, parser, cli_name, *, argv=None):
+    def add_arguments(self, parser, cli_name):
         pass
 
     def main(self, *, parser, args):

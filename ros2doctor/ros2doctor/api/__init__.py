@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import sys
 from typing import List
+from typing import Optional
 from typing import Set
 from typing import Tuple
+from typing import Union
 
-try:
-    import importlib.metadata as importlib_metadata
-except ModuleNotFoundError:
-    import importlib_metadata
+import importlib.metadata as importlib_metadata
 
 from ros2cli.node.strategy import NodeStrategy
 from ros2doctor.api.format import doctor_warn
@@ -32,8 +32,8 @@ class DoctorCheck:
         """:return: string linking checks and reports."""
         raise NotImplementedError
 
-    def check(self) -> bool:
-        """:return: boolean indicating result of checks."""
+    def check(self) -> 'Result':
+        """:return: Result object indicating result of checks."""
         raise NotImplementedError
 
 
@@ -57,9 +57,9 @@ class Report:
     def __init__(self, name: str):
         """Initialize with report name."""
         self.name = name
-        self.items = []
+        self.items: List[Tuple[str, object]] = []
 
-    def add_to_report(self, item_name: str, item_info: str) -> None:
+    def add_to_report(self, item_name: str, item_info: object) -> None:
         """Add report content to items list (list of string tuples)."""
         self.items.append((item_name, item_info))
 
@@ -69,31 +69,33 @@ class Result:
 
     __slots__ = ['error', 'warning']
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize with no error or warning."""
         self.error = 0
         self.warning = 0
 
-    def add_error(self):
+    def add_error(self) -> None:
         self.error += 1
 
-    def add_warning(self):
+    def add_warning(self) -> None:
         self.warning += 1
 
 
-def run_checks(*, include_warnings=False, exclude_packages=False) -> Tuple[Set[str], int, int]:
+def run_checks(*, include_warnings: bool = False,
+               exclude_packages: bool = False) -> Tuple[Set[str], int, int]:
     """
     Run all checks and return check results.
 
     :return: 3-tuple (categories of failed checks, number of failed checks,
              total number of checks)
     """
-    fail_categories = set()  # remove repeating elements
+    fail_categories: Set[str] = set()  # remove repeating elements
     fail = 0
     total = 0
     entry_points = importlib_metadata.entry_points()
-    if hasattr(entry_points, 'select'):
-        groups = entry_points.select(group='ros2doctor.checks')
+    if sys.version_info >= (3, 10):
+        groups: Union[importlib_metadata.EntryPoints, List[importlib_metadata.EntryPoint]] = \
+            entry_points.select(group='ros2doctor.checks')
     else:
         groups = entry_points.get('ros2doctor.checks', [])
 
@@ -123,16 +125,17 @@ def run_checks(*, include_warnings=False, exclude_packages=False) -> Tuple[Set[s
     return fail_categories, fail, total
 
 
-def generate_reports(*, categories=None, exclude_packages=False) -> List[Report]:
+def generate_reports(*, categories: Optional[Set[str]] = None, exclude_packages: bool = False) -> List[Report]:
     """
     Print all reports or reports of failed checks to terminal.
 
     :return: list of Report objects
     """
-    reports = []
+    reports: List[Report] = []
     entry_points = importlib_metadata.entry_points()
-    if hasattr(entry_points, 'select'):
-        groups = entry_points.select(group='ros2doctor.report')
+    if sys.version_info >= (3, 10):
+        groups: Union[importlib_metadata.EntryPoints, List[importlib_metadata.EntryPoint]] = \
+            entry_points.select(group='ros2doctor.report')
     else:
         groups = entry_points.get('ros2doctor.report', [])
 
@@ -163,9 +166,9 @@ def generate_reports(*, categories=None, exclude_packages=False) -> List[Report]
     return reports
 
 
-def get_topic_names(skip_topics: List = ()) -> List:
+def get_topic_names(skip_topics: List[str] = []) -> List[str]:
     """Get all topic names using rclpy API."""
-    topics = []
+    topics: List[str] = []
     with NodeStrategy(None) as node:
         topic_names_types = node.get_topic_names_and_types()
         for t_name, _ in topic_names_types:

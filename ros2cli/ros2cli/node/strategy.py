@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Any
+
 from ros2cli.node.daemon import add_arguments as add_daemon_node_arguments
 from ros2cli.node.daemon import DaemonNode
 from ros2cli.node.daemon import is_daemon_running
@@ -51,7 +53,7 @@ class NodeStrategy:
                 self._direct_node.__enter__()
         return self._direct_node
 
-    def __enter__(self):
+    def __enter__(self) -> 'NodeStrategy':
         if self._daemon_node:
             self._daemon_node.__enter__()
         if self._direct_node:
@@ -59,7 +61,7 @@ class NodeStrategy:
         self._in_scope = True
         return self
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         if self.daemon_node and name in self.daemon_node.methods:
             return getattr(self.daemon_node, name)
         return getattr(self.direct_node, name)

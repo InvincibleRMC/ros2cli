@@ -23,7 +23,7 @@ from std_msgs.msg import String
 
 class TalkerNode(Node):
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__('talker_node')
         qos_profile = QoSProfile(
             depth=1,
@@ -33,12 +33,12 @@ class TalkerNode(Node):
         self.pub = self.create_publisher(String, 'chatter', qos_profile=qos_profile)
         self.tmr = self.create_timer(1.0, self.callback)
 
-    def callback(self):
+    def callback(self) -> None:
         self.pub.publish(String(data='Hello World: {0}'.format(self.count)))
         self.count += 1
 
 
-def main(args=None):
+def main(args: None = None) -> None:
     try:
         with rclpy.init(args=args):
             node = TalkerNode()

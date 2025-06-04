@@ -14,6 +14,9 @@
 
 import os
 import textwrap
+from typing import Dict
+from typing import Literal
+from typing import List
 
 from ament_index_python import get_packages_with_prefixes
 from catkin_pkg.package import parse_package
@@ -29,7 +32,7 @@ from ros2doctor.api.format import doctor_warn
 import rosdistro
 
 
-def get_distro_package_versions() -> dict:
+def get_distro_package_versions() -> Dict[str, str]:
     """
     Return repos info using rosdistro API.
 
@@ -38,25 +41,25 @@ def get_distro_package_versions() -> dict:
     distro_name = os.environ.get('ROS_DISTRO')
     if not distro_name:
         doctor_error('ROS_DISTRO is not set.')
-        return
+        return {}
     distro_name = distro_name.lower()
     url = rosdistro.get_index_url()
     if not url:
         doctor_error(
             'Unable to access ROSDISTRO_INDEX_URL or DEFAULT_INDEX_URL. '
             'Check network setting to make sure machine is connected to internet.')
-        return
+        return {}
     i = rosdistro.get_index(url)
     distro_info = rosdistro.get_distribution(i, distro_name)
     if not distro_info:
         doctor_warn(f'Distribution name {distro_name} is not found')
-        return
+        return {}
     try:
         repos_info = distro_info.get_data().get('repositories')
     except AttributeError:
         doctor_warn('No repository information found.')
-        return
-    distro_package_vers = {}
+        return {}
+    distro_package_vers: Dict[str, str] = {}
     for package_name, info in repos_info.items():
         try:
             release = info['release']
@@ -72,13 +75,13 @@ def get_distro_package_versions() -> dict:
     return distro_package_vers
 
 
-def get_local_package_versions() -> dict:
+def get_local_package_versions() -> Dict[str, str]:
     """
     Return local package name and versions.
 
     :return: dictionary of local package name and version
     """
-    local_packages = {}
+    local_packages: Dict[str, str] = {}
     package_name_prefixes = get_packages_with_prefixes()
     if package_name_prefixes:
         for name, prefix in package_name_prefixes.items():
@@ -88,7 +91,7 @@ def get_local_package_versions() -> dict:
     return local_packages
 
 
-def compare_versions(result: Result, local_packages: dict, distro_packages: dict):
+def compare_versions(result: Result, local_packages: Dict[str, str], distro_packages: Dict[str, str]) -> None:
     """
     Return warning messages for PackageCheck, and info for PackageReport.
 
@@ -97,8 +100,8 @@ def compare_versions(result: Result, local_packages: dict, distro_packages: dict
     :param: boolean value determines which output to populate, msgs or report
     :return: list of warning messages
     """
-    missing_req = []
-    missing_local = []
+    missing_req: List[str] = []
+    missing_local: List[str] = []
     for name, local_ver_str in local_packages.items():
         if not local_ver_str:
             missing_local.append(name)
@@ -142,10 +145,10 @@ def compare_versions(result: Result, local_packages: dict, distro_packages: dict
 class PackageCheck(DoctorCheck):
     """Check local package versions against release versions on rosdistro."""
 
-    def category(self):
+    def category(self) -> Literal['package']:
         return 'package'
 
-    def check(self):
+    def check(self) -> Result:
         """Check packages within the directory where command is called."""
         result = Result()
         distro_package_vers = get_distro_package_versions()
@@ -166,10 +169,10 @@ class PackageCheck(DoctorCheck):
 class PackageReport(DoctorReport):
     """Report local package versions and release versions on rosdistro."""
 
-    def category(self):
+    def category(self) -> Literal['package']:
         return 'package'
 
-    def report(self):
+    def report(self) -> Report:
         """Report packages within the directory where command is called."""
         report = Report('PACKAGE VERSIONS')
         local_package_vers = get_local_package_versions()

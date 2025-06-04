@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Literal
+
 from ros2cli.node.direct import DirectNode
 from ros2doctor.api import DoctorCheck
 from ros2doctor.api import DoctorReport
@@ -27,10 +29,10 @@ SKIP_TOPICS = ['/parameter_events', '/rosout']
 class TopicCheck(DoctorCheck):
     """Check for pub without sub or sub without pub."""
 
-    def category(self):
+    def category(self) -> Literal['topic']:
         return 'topic'
 
-    def check(self):
+    def check(self) -> Result:
         """Check publisher and subscriber counts."""
         result = Result()
         to_be_checked = get_topic_names(skip_topics=SKIP_TOPICS)
@@ -50,10 +52,10 @@ class TopicCheck(DoctorCheck):
 class TopicReport(DoctorReport):
     """Report topic related information."""
 
-    def category(self):
+    def category(self) -> Literal['topic']:
         return 'topic'
 
-    def report(self):
+    def report(self) -> Report:
         report = Report('TOPIC LIST')
         to_be_reported = get_topic_names(skip_topics=SKIP_TOPICS)
         if not to_be_reported:

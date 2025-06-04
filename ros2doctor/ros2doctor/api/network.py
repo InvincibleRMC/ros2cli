@@ -14,6 +14,10 @@
 
 import os
 import socket
+from typing import List
+from typing import Literal
+from typing import Optional
+from typing import TypedDict
 
 import psutil
 
@@ -27,7 +31,7 @@ from ros2doctor.api.format import doctor_warn
 
 class InterfaceFlags:
 
-    def __init__(self, interface_name):
+    def __init__(self, interface_name: str):
         self.flags = ''
         self.has_loopback = False
         self.has_non_loopback = False
@@ -49,7 +53,7 @@ class InterfaceFlags:
         if 'multicast' in interface_stats.flags:
             self.has_multicast = True
 
-    def __str__(self):
+    def __str__(self) -> str:
         if not self.flags:
             return ''
 
@@ -59,10 +63,10 @@ class InterfaceFlags:
 class NetworkCheck(DoctorCheck):
     """Check network interface configuration for loopback and multicast."""
 
-    def category(self):
+    def category(self) -> Literal['network']:
         return 'network'
 
-    def check(self):
+    def check(self) -> Result:
         """Check network configuration."""
         result = Result()
 
@@ -95,20 +99,32 @@ class NetworkCheck(DoctorCheck):
         return result
 
 
+class IfInfoDict(TypedDict):
+    inet: Optional[str]
+    inet4: List[str]
+    ether: Optional[str]
+    inet6: List[str]
+    netmask: Optional[str]
+    device: str
+    flags: Optional[str]
+    mtu: Optional[int]
+    broadcast: Optional[str]
+
+
 class NetworkReport(DoctorReport):
     """Report network configuration."""
 
-    def category(self):
+    def category(self) -> Literal['network']:
         return 'network'
 
-    def report(self):
+    def report(self) -> Report:
         """Print system and ROS network information."""
         if_stats = psutil.net_if_stats()
 
         network_report = Report('NETWORK CONFIGURATION')
 
         for interface, addrs in psutil.net_if_addrs().items():
-            if_info = {
+            if_info: IfInfoDict = {
                 'inet': None,
                 'inet4': [],
                 'ether': None,

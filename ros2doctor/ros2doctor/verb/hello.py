@@ -13,29 +13,38 @@
 # limitations under the License.
 
 from argparse import ArgumentTypeError
+from argparse import ArgumentParser
+from argparse import Namespace
 import os
 import re
 import socket
 import struct
 import threading
+from typing import Callable
+from typing import Dict
+from typing import Final
+from typing import Optional
+from typing import Type
+from typing import Union
 
 import rclpy
 from rclpy.duration import Duration
 from rclpy.executors import SingleThreadedExecutor
 from rclpy.qos import qos_profile_system_default
+from rclpy.qos import QoSProfile
 from ros2cli.node.direct import DirectNode
 from ros2doctor.verb import VerbExtension
 from std_msgs.msg import String
 
-DEFAULT_GROUP = '225.0.0.1'
-DEFAULT_PORT = 49150
+DEFAULT_GROUP: Final = '225.0.0.1'
+DEFAULT_PORT: Final = 49150
 
-NODE_NAME_PREFIX = \
+NODE_NAME_PREFIX: Final = \
     f"ros2doctor_{re.sub(r'[^0-9a-zA-Z_]', '_', socket.gethostname())}_{os.getpid()}"
 
 
-def positive(type_):
-    def _coerce(string):
+def positive(type_: Type[Union[int, float]]) -> Callable[[str], Union[int, float]]:
+    def _coerce(string: str) -> Union[int, float]:
         try:
             value = type_(string)
         except ValueError:
@@ -60,7 +69,7 @@ class HelloVerb(VerbExtension):
     This command outputs a summary table of msgs statistics at a custom period(s).
     """
 
-    def add_arguments(self, parser, cli_name):
+    def add_arguments(self, parser: ArgumentParser, cli_name: str) -> None:
         parser.add_argument(
             '-t', '--topic', nargs='?', default='/canyouhearme',
             help="Name of ROS topic to publish to (default: '/canyouhearme')")
@@ -77,7 +86,7 @@ class HelloVerb(VerbExtension):
             '-1', '--once', action='store_true', default=False,
             help='Publish and multicast send for one emit period then exit; used in test case.')
 
-    def main(self, *, args, summary_table=None):
+    def main(self, *, args: Namespace, summary_table: Optional['SummaryTable'] = None) -> None:
         if summary_table is None:
             summary_table = SummaryTable()
         with DirectNode(args, node_name=NODE_NAME_PREFIX + '_node') as node:
@@ -91,7 +100,7 @@ class HelloVerb(VerbExtension):
             executor = SingleThreadedExecutor()
             executor.add_node(node.node)
 
-            def spin():
+            def spin() -> None:
                 try:
                     executor.spin()
                 except rclpy.executors.ExternalShutdownException:
@@ -132,14 +141,15 @@ class HelloVerb(VerbExtension):
 class HelloPublisher:
     """Publish 'hello' messages over an std_msgs/msg/String topic."""
 
-    def __init__(self, node, topic, summary_table, *, qos=qos_profile_system_default):
+    def __init__(self, node: DirectNode, topic: str,
+                 summary_table: 'SummaryTable', *, qos: QoSProfile = qos_profile_system_default):
         self._summary_table = summary_table
         self._pub = node.create_publisher(String, topic, qos)
 
-    def destroy(self):
+    def destroy(self) -> None:
         self._pub.destroy()
 
-    def publish(self):
+    def publish(self) -> None:
         msg = String()
         hostname = socket.gethostname()
         msg.data = f"hello, it's me {hostname}"
@@ -150,16 +160,17 @@ class HelloPublisher:
 class HelloSubscriber:
     """Subscribe to 'hello' messages over an std_msgs/msg/String topic."""
 
-    def __init__(self, node, topic, summary_table, *, qos=qos_profile_system_default):
+    def __init__(self, node: DirectNode, topic: str, summary_table: 'SummaryTable', *,
+                 qos: QoSProfile = qos_profile_system_default):
         self._summary_table = summary_table
         self._sub = node.create_subscription(String, topic, self._callback, qos)
 
-    def destroy(self):
+    def destroy(self) -> None:
         self._sub.destroy()
 
-    def _callback(self, msg):
-        msg_data = msg.data.split()
-        pub_hostname = msg_data[-1]
+    def _callback(self, msg: String) -> None:
+        msg_data_split = msg.data.split()
+        pub_hostname = msg_data_split[-1]
         if pub_hostname != socket.gethostname():
             self._summary_table.increment_sub(pub_hostname)
 
@@ -167,7 +178,8 @@ class HelloSubscriber:
 class HelloMulticastUDPSender:
     """Send 'hello' messages over a multicast UDP socket."""
 
-    def __init__(self, summary_table, group=DEFAULT_GROUP, port=DEFAULT_PORT, ttl=None):
+    def __init__(self, summary_table: 'SummaryTable',
+                 group: str = DEFAULT_GROUP, port: int = DEFAULT_PORT, ttl: Optional[int] = None):
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         try:
             if ttl is not None:
@@ -180,21 +192,22 @@ class HelloMulticastUDPSender:
         self._group = group
         self._port = port
 
-    def send(self):
+    def send(self) -> None:
         hostname = socket.gethostname()
         self._socket.sendto(
             f"hello, it's me {hostname}".encode('utf-8'), (self._group, self._port)
         )
         self._summary_table.increment_send()
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         self._socket.close()
 
 
 class HelloMulticastUDPReceiver:
     """Receive 'hello' messages over a multicast UDP socket."""
 
-    def __init__(self, summary_table, group=DEFAULT_GROUP, port=DEFAULT_PORT, timeout=None):
+    def __init__(self, summary_table: 'SummaryTable', group: str = DEFAULT_GROUP,
+                 port: int = DEFAULT_PORT, timeout: Optional[float] = None):
         self._dummy_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         try:
@@ -219,18 +232,18 @@ class HelloMulticastUDPReceiver:
         self._group = group
         self._port = port
 
-    def recv(self):
+    def recv(self) -> None:
         try:
             while not self._is_shutdown:
                 data, _ = self._socket.recvfrom(4096)
-                data = data.decode('utf-8')
-                sender_hostname = data.split()[-1]
+                bytes_data = data.decode('utf-8')
+                sender_hostname = bytes_data.split()[-1]
                 if sender_hostname != socket.gethostname():
                     self._summary_table.increment_receive(sender_hostname)
         except socket.timeout:
             pass
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         if self._is_shutdown:
             return
         self._is_shutdown = True
@@ -245,15 +258,15 @@ class HelloMulticastUDPReceiver:
 class SummaryTable:
     """Summarize number of msgs published/sent and subscribed/received."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize empty summary table."""
         self.lock = threading.Lock()
         self._pub = 0
         self._send = 0
-        self._sub = {}
-        self._receive = {}
+        self._sub: Dict[str, int] = {}
+        self._receive: Dict[str, int] = {}
 
-    def reset(self):
+    def reset(self) -> None:
         """Reset summary table to empty each time after printing."""
         with self.lock:
             self._pub = 0
@@ -261,12 +274,12 @@ class SummaryTable:
             self._sub = {}
             self._receive = {}
 
-    def increment_pub(self):
+    def increment_pub(self) -> None:
         """Increment published msg count."""
         with self.lock:
             self._pub += 1
 
-    def increment_sub(self, hostname):
+    def increment_sub(self, hostname: str) -> None:
         """Increment subscribed msg count from different host(s)."""
         with self.lock:
             if hostname not in self._sub:
@@ -274,12 +287,12 @@ class SummaryTable:
             else:
                 self._sub[hostname] += 1
 
-    def increment_send(self):
+    def increment_send(self) -> None:
         """Increment multicast-sent msg count."""
         with self.lock:
             self._send += 1
 
-    def increment_receive(self, hostname):
+    def increment_receive(self, hostname: str) -> None:
         """Increment multicast-received msg count from different host(s)."""
         with self.lock:
             if hostname not in self._receive:
@@ -287,9 +300,10 @@ class SummaryTable:
             else:
                 self._receive[hostname] += 1
 
-    def format_print_summary(self, topic, print_period, *, group=DEFAULT_GROUP, port=DEFAULT_PORT):
+    def format_print_summary(self, topic: str, print_period: float, *,
+                             group: str = DEFAULT_GROUP, port: int = DEFAULT_PORT) -> None:
         """Print content in a table format."""
-        def _format_print_summary_helper(table):
+        def _format_print_summary_helper(table: Dict[str, int]) -> None:
             print('{:<15} {:<20} {:<10}'.format('', 'Hostname', f'Msg Count /{print_period}s'))
             for name, count in table.items():
                 print('{:<15} {:<20} {:<10}'.format('', name, count))

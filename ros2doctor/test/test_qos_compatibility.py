@@ -15,6 +15,14 @@
 import contextlib
 import os
 import sys
+from typing import Any
+from typing import Callable
+from typing import ContextManager
+from typing import Dict
+from typing import Generator
+from typing import List
+from typing import Tuple
+from typing import TYPE_CHECKING
 import unittest
 
 from launch import LaunchDescription
@@ -45,7 +53,7 @@ if sys.platform.startswith('win'):
 
 @pytest.mark.rostest
 @launch_testing.parametrize('rmw_implementation', get_available_rmw_implementations())
-def generate_test_description(rmw_implementation):
+def generate_test_description(rmw_implementation: str) -> Tuple[LaunchDescription, Dict[str, Any]]:
     path_to_fixtures = os.path.join(os.path.dirname(__file__), 'fixtures')
     additional_env = get_rmw_additional_env(rmw_implementation)
     additional_env['PYTHONUNBUFFERED'] = '1'
@@ -109,6 +117,9 @@ def generate_test_description(rmw_implementation):
 
 class TestROS2DoctorQoSCompatibility(unittest.TestCase):
 
+    if TYPE_CHECKING:
+        launch_doctor_command: Callable[['TestROS2DoctorQoSCompatibility', List[str]], ContextManager[None]]
+
     @classmethod
     def setUpClass(
             cls,
@@ -116,7 +127,7 @@ class TestROS2DoctorQoSCompatibility(unittest.TestCase):
             proc_info,
             proc_output,
             rmw_implementation,
-    ):
+    ) -> None:
         rmw_implementation_filter = launch_testing_ros.tools.basic_output_filter(
             filtered_patterns=['WARNING: topic .* does not appear to be published yet'],
             filtered_rmw_implementation=rmw_implementation
@@ -124,10 +135,10 @@ class TestROS2DoctorQoSCompatibility(unittest.TestCase):
 
         # skip zenoh because of the QoS compatibility
         if rmw_implementation == 'rmw_zenoh_cpp':
-            raise unittest.SkipTest()
+            raise unittest.SkipTest('skip zenoh because of the QoS compatibility')
 
         @contextlib.contextmanager
-        def launch_doctor_command(self, arguments):
+        def launch_doctor_command(self: 'TestROS2DoctorQoSCompatibility', arguments: List[str]) -> Generator[None, None, launch_testing.tools.ProcessProxy]:
             additional_env = get_rmw_additional_env(rmw_implementation)
             additional_env['PYTHONUNBUFFERED'] = '1'
             doctor_command_action = ExecuteProcess(
@@ -144,7 +155,7 @@ class TestROS2DoctorQoSCompatibility(unittest.TestCase):
         cls.launch_doctor_command = launch_doctor_command
 
     @launch_testing.markers.retry_on_failure(times=5, delay=1)
-    def test_check(self):
+    def test_check(self) -> None:
         with self.launch_doctor_command(
                 arguments=[]
         ) as doctor_command:
@@ -157,7 +168,7 @@ class TestROS2DoctorQoSCompatibility(unittest.TestCase):
         assert 'middleware' in lines_list[-1]
 
     @launch_testing.markers.retry_on_failure(times=5, delay=1)
-    def test_report(self):
+    def test_report(self) -> None:
         for argument in ['-r', '--report']:
             with self.launch_doctor_command(
                     arguments=[argument]
